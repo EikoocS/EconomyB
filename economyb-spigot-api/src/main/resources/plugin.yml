@@ -1,0 +1,4 @@
+name: economyb-api
+version: '0.1.0-SNAPSHOT'
+main: tech.cookiepower.economyb.api.EbAPI
+api-version: '1.21'
