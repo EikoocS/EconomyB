@@ -6,6 +6,16 @@ import tech.cookiepower.economyb.api.EconomybAPI;
 import java.util.UUID;
 
 public class EconomybApiImpl implements EconomybAPI {
+
+    public EconomybApiImpl() {
+        AccountService.init();
+    }
+
+    @Override
+    public boolean ready() {
+        return true;
+    }
+
     @Override
     public Account getAccount(String identifier, Account.Type type) {
         return new AccountImpl(identifier, type);

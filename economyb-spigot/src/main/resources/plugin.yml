@@ -1,5 +1,5 @@
 name: economyb
 version: '0.1.0-SNAPSHOT'
-main: tech.cookiepower.economyb.EconomyB
+main: tech.cookiepower.economyb.EconomybPlugin
 api-version: '1.21'
 depend: [economyb-api]

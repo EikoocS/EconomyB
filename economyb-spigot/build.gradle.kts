@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.*
+
 plugins {
     java
     id("xyz.jpenilla.run-paper") version "2.3.1"
@@ -21,6 +23,7 @@ repositories {
 
 dependencies {
     implementation(project(":economyb-core"))
+    compileOnly(project(":economyb-api"))
 
     compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
 }
@@ -60,7 +63,34 @@ tasks.withType<ProcessResources>().configureEach {
 }
 
 tasks.shadowJar {
+    mergeServiceFiles()
+    transform(PropertiesFileTransformer::class.java) {
+        paths = listOf(
+            "META-INF/quarkus-extension.properties",
+            "META-INF/quarkus-config-roots.list",
+            "META-INF/quarkus-javadoc.properties"
+        )
+    }
+    listOf(
+        "META-INF/io.netty.versions.properties",
+        "META-INF/jandex.idx",
+        "META-INF/beans.xml"
+    ).forEach {
+        transform(AppendingTransformer::class.java) { resource = it }
+    }
+    exclude(
+        "META-INF/LICENSE", "META-INF/LICENSE.*",
+        "META-INF/NOTICE", "META-INF/NOTICE.*",
+        "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA",
+        "META-INF/maven/**",
+        "META-INF/quarkus-extension.yaml",
+        "META-INF/quarkus/**",
+        "META-INF/io.quarkus/**",
+        "META-INF/services/io.quarkus.*"
+    )
     archiveClassifier = ""
+    relocate("io.netty", "tech.cookiepower.shadow.netty")
+    relocate("io.vertx", "tech.cookiepower.shadow.vertx")
 }
 
 tasks.build {
