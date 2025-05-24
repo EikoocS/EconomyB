@@ -1,10 +1,10 @@
 package tech.cookiepower.economyb;
 
-import io.vertx.core.Future;
 import io.vertx.mysqlclient.MySQLBuilder;
 import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.sqlclient.*;
 import io.vertx.sqlclient.Tuple;
+import tech.cookiepower.economyb.api.Account;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -59,20 +59,28 @@ public class AccountService {
                 .thenApply(rs -> null);
     }
 
-    public CompletableFuture<Boolean> existsAccount(AccountIdent accountIdent) {
-        String sql = "SELECT 1 FROM economyb_accounts WHERE currency = ? AND type = ? AND identifier = ?";
-        Tuple params = Tuple.of(accountIdent.currency(), accountIdent.type(), accountIdent.identifier());
+    public CompletableFuture<Boolean> exist(String currency, Account.Type type, String identifier) {
+        String sql = """
+            SELECT EXISTS(
+                SELECT 1 FROM economyb_accounts WHERE currency = ? AND type = ? AND identifier = ?
+            ) AS `exists`
+        """;
+
+        Tuple params = Tuple.of(currency, type, identifier);
 
         return sqlPool.preparedQuery(sql)
                 .execute(params)
                 .toCompletionStage()
                 .toCompletableFuture()
-                .thenApply(result -> result.size() > 0);
+                .thenApply(result -> result.iterator().next().getBoolean("exists"));
     }
 
-    public CompletableFuture<Void> insertAccount(AccountIdent accountIdent) {
-        String sql = "INSERT IGNORE INTO economyb_accounts(currency, type, identifier) VALUES (?, ?, ?)";
-        Tuple params = Tuple.of(accountIdent.currency(), accountIdent.type(), accountIdent.identifier());
+    public CompletableFuture<Void> create(String currency, Account.Type type, String identifier) {
+        String sql = """
+            INSERT IGNORE INTO economyb_accounts (currency, type, identifier)VALUE (?,?,?);
+        """;
+
+        Tuple params = Tuple.of(currency, type, identifier);
 
         return sqlPool.withTransaction(conn ->
                 conn.preparedQuery(sql)
@@ -80,145 +88,113 @@ public class AccountService {
         ).toCompletionStage().toCompletableFuture().thenApply(res -> null);
     }
 
-    private CompletableFuture<Void> ensureAccountExists(AccountIdent accountIdent) {
-        return existsAccount(accountIdent).thenCompose(exists -> {
-            if (exists) return CompletableFuture.completedFuture(null);
-            return insertAccount(accountIdent);
-        });
+    public CompletableFuture<Long> get(String currency, Account.Type type, String identifier) {
+        String sql = """
+            SELECT COALESCE(SUM(balance), 0) AS balance
+            FROM economyb_accounts
+            WHERE currency = ? AND type = ? AND identifier = ?;
+        """;
+
+        Tuple params = Tuple.of(currency, type, identifier);
+
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(res -> res.iterator().next().getLong("balance"));
     }
 
-    public CompletableFuture<Long> getBalance(AccountIdent accountIdent) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = "SELECT balance FROM economyb_accounts WHERE currency = ? AND type = ? AND identifier = ?";
-            Tuple params = Tuple.of(accountIdent.currency(), accountIdent.type(), accountIdent.identifier());
+    public CompletableFuture<Void> set(String currency, Account.Type type, String identifier, long balance) {
+        String sql = """
+                INSERT INTO economyb_accounts (currency, type, identifier, balance)VALUE (?,?,?,?)
+                ON DUPLICATE KEY UPDATE balance = ?;
+        """;
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> rows.iterator().next().getLong("balance"));
-        });
+        Tuple params = Tuple.of(currency, type, identifier, balance, balance);
+
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(res -> null);
     }
 
-    public CompletableFuture<Long> getFrozenBalance(AccountIdent accountIdent) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = "SELECT frozen FROM economyb_accounts WHERE currency = ? AND type = ? AND identifier = ?";
-            Tuple params = Tuple.of(accountIdent.currency(), accountIdent.type(), accountIdent.identifier());
+    public CompletableFuture<Void> modify(String currency, Account.Type type, String identifier, long delta) {
+        String sql = """
+                INSERT INTO economyb_accounts (currency, type, identifier, balance)VALUE (?,?,?,?)
+                ON DUPLICATE KEY UPDATE balance = balance+?;
+        """;
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> rows.iterator().next().getLong("frozen"));
-        });
+        Tuple params = Tuple.of(currency, type, identifier, delta, delta);
+
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(res -> null);
     }
 
-    public CompletableFuture<Long> setBalance(AccountIdent accountIdent, long balance) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = "UPDATE economyb_accounts SET balance = ? WHERE currency = ? AND type = ? AND identifier = ?";
-            Tuple params = Tuple.of(balance, accountIdent.currency(), accountIdent.type(), accountIdent.identifier());
+    public CompletableFuture<Long> getFrozen(String currency, Account.Type type, String identifier) {
+        String sql = """
+            SELECT COALESCE(SUM(frozen), 0) AS frozen
+            FROM economyb_accounts
+            WHERE currency = ? AND type = ? AND identifier = ?;
+        """;
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> balance);
-        });
+        Tuple params = Tuple.of(currency, type, identifier);
+
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(res -> res.iterator().next().getLong("frozen"));
     }
 
-    public CompletableFuture<Void> modifyBalance(AccountIdent accountIdent, long delta, boolean allowNegative) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = allowNegative
-                    ? "UPDATE economyb_accounts SET balance = balance + ? WHERE currency = ? AND type = ? AND identifier = ?"
-                    : "UPDATE economyb_accounts SET balance = balance + ? WHERE currency = ? AND type = ? AND identifier = ? AND balance + ? >= 0";
+    public CompletableFuture<Void> freeze(String currency, Account.Type type, String identifier, long amount) {
+        String sql = """
+                INSERT INTO economyb_accounts (currency, type, identifier, balance, frozen)VALUE (?,?,?,-?,?)
+                ON DUPLICATE KEY UPDATE balance = balance-?, frozen = frozen+?;
+                """;
 
-            Tuple params = allowNegative
-                    ? Tuple.of(delta, accountIdent.currency(), accountIdent.type(), accountIdent.identifier())
-                    : Tuple.of(delta, accountIdent.currency(), accountIdent.type(), accountIdent.identifier(), delta);
+        Tuple params = Tuple.of(currency, type, identifier, amount, amount, amount, amount);
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> {
-                        if (rows.rowCount() > 0) return null;
-                        else throw new IllegalStateException("Insufficient funds or account not found");
-                    });
-        });
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(rows -> null);
     }
 
-    public CompletableFuture<Long> freezeAmount(AccountIdent accountIdent, long amount) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = """
-                UPDATE economyb_accounts\s
-                SET frozen = frozen + ?\s
-                WHERE currency = ? AND type = ? AND identifier = ?\s
-                  AND balance - frozen >= ?
-           \s""";
+    public CompletableFuture<Void> unfreeze(String currency, Account.Type type, String identifier, long amount) {
+        String sql = """
+                INSERT INTO economyb_accounts (currency, type, identifier, balance, frozen)VALUE (?,?,?,?,-?)
+                ON DUPLICATE KEY UPDATE balance = balance+?, frozen = frozen-?;
+                """;
 
-            Tuple params = Tuple.of(amount, accountIdent.currency(), accountIdent.type(), accountIdent.identifier(), amount);
+        Tuple params = Tuple.of(currency, type, identifier, amount, amount, amount, amount);
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> {
-                        if (rows.rowCount() == 0) {
-                            throw new IllegalStateException("Insufficient available balance to freeze");
-                        }
-                        return amount;
-                    });
-        });
+        return sqlPool.preparedQuery(sql)
+                .execute(params)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(rows -> null);
     }
 
-    public CompletableFuture<Long> unfreezeAmount(AccountIdent accountIdent, long amount) {
-        return ensureAccountExists(accountIdent).thenCompose(unused -> {
-            String sql = """
-                UPDATE economyb_accounts
-                SET frozen = frozen - ?
-                WHERE currency = ? AND type = ? AND identifier = ?
-                  AND frozen >= ?
-            """;
+            public CompletableFuture<Void> transfer(
+            String fromCurrency, Account.Type fromType, String fromIdentifier, long decrease,
+            String toCurrency, Account.Type toType, String toIdentifier, long increase) {
+        String sql = """
+                INSERT INTO economyb_accounts (currency, type, identifier, balance)VALUE (?,?,?,?)
+                ON DUPLICATE KEY UPDATE balance = balance+?;
+                """;
 
-            Tuple params = Tuple.of(amount, accountIdent.currency(), accountIdent.type(), accountIdent.identifier(), amount);
+        Tuple fromParams = Tuple.of(fromCurrency, fromType, fromIdentifier, -decrease, -decrease);
+        Tuple toParams = Tuple.of(toCurrency, toType, toIdentifier, increase, increase);
 
-            return sqlPool.preparedQuery(sql)
-                    .execute(params)
-                    .toCompletionStage()
-                    .toCompletableFuture()
-                    .thenApply(rows -> {
-                        if (rows.rowCount() == 0) {
-                            throw new IllegalStateException("Insufficient frozen balance to unfreeze");
-                        }
-                        return amount;
-                    });
-        });
-    }
-
-    public CompletableFuture<Boolean> transfer(AccountIdent fromIdent, AccountIdent toIdent, long decrease, long increase, boolean allowNegative) {
-        return ensureAccountExists(fromIdent).thenCompose(unused1 ->
-                ensureAccountExists(toIdent).thenCompose(unused2 -> {
-                    String decreaseSql = allowNegative
-                            ? "UPDATE economyb_accounts SET balance = balance - ? WHERE currency = ? AND type = ? AND identifier = ?"
-                            : "UPDATE economyb_accounts SET balance = balance - ? WHERE currency = ? AND type = ? AND identifier = ? AND balance - ? >= 0";
-
-                    Tuple decParams = allowNegative
-                            ? Tuple.of(decrease, fromIdent.currency(), fromIdent.type(), fromIdent.identifier())
-                            : Tuple.of(decrease, fromIdent.currency(), fromIdent.type(), fromIdent.identifier(), decrease);
-
-                    String increaseSql = "UPDATE economyb_accounts SET balance = balance + ? WHERE currency = ? AND type = ? AND identifier = ?";
-                    Tuple incParams = Tuple.of(increase, toIdent.currency(), toIdent.type(), toIdent.identifier());
-
-                    return sqlPool.withTransaction(conn ->
-                            conn.preparedQuery(decreaseSql).execute(decParams)
-                                    .compose(res -> {
-                                        if (res.rowCount() == 0) {
-                                            return Future.failedFuture("Transfer failed due to insufficient funds or missing sender");
-                                        }
-                                        return conn.preparedQuery(increaseSql).execute(incParams);
-                                    })
-                    ).toCompletionStage().toCompletableFuture().thenApply(res -> true);
-                })
-        );
+        return sqlPool.withTransaction(conn -> conn.preparedQuery(sql)
+                .execute(fromParams)
+                .compose(res -> conn.preparedQuery(sql).execute(toParams))).toCompletionStage()
+                .toCompletableFuture()
+                .thenApply(rows -> null);
     }
 }

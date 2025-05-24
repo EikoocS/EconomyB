@@ -26,17 +26,6 @@ public final class EconomybPlugin extends JavaPlugin {
     public void onEnable(){
         if(EconomyB.hasAPI()&&PROVIDER.equals(EconomyB.getProvider())){
             logger.info("EconomyB API already registered, Hello world!");
-            try {
-                var account = EconomyB.getAPI().getSystemAccount("test_system");
-                var before = account.getBalance("test").get();
-                account.addBalance("test",1000,false).get();
-                var after = account.getBalance("test").get();
-                logger.info("Before: "+before);
-                logger.info("After: "+after);
-            }catch (Exception e){
-                logger.warning("Failed to load system account.");
-                logger.warning(e.getMessage());
-            }
         }
     }
 

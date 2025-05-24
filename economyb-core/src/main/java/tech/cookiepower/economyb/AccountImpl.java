@@ -1,14 +1,10 @@
 package tech.cookiepower.economyb;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import tech.cookiepower.economyb.api.Account;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-@Getter
-@EqualsAndHashCode
 public class AccountImpl implements Account {
     private final String id;
     private final Account.Type type;
@@ -24,86 +20,72 @@ public class AccountImpl implements Account {
     }
 
     @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public Type getType() {
+        return type;
+    }
+
+    @Override
     public CompletableFuture<Long> getBalance(String currency) {
-        var ident = getIdent(currency);
-        var freeFuture = AccountService.getInstance().getBalance(ident);
-        var frozenFuture = AccountService.getInstance().getFrozenBalance(ident);
-        return freeFuture.thenCombine(frozenFuture, (free, frozen) -> free-frozen);
+        return AccountService.getInstance().get(currency,type,id);
     }
 
     @Override
     public CompletableFuture<Boolean> hasBalance(String currency, long amount) {
-        var ident = getIdent(currency);
-        var freeFuture = AccountService.getInstance().getBalance(ident);
-        var frozenFuture = AccountService.getInstance().getFrozenBalance(ident);
-        return freeFuture.thenCombine(frozenFuture, (free, frozen) -> free-frozen>amount);
+        return AccountService.getInstance().get(currency,type,id)
+                .thenApply(balance -> balance >= amount);
     }
 
     @Override
-    public CompletableFuture<Long> setBalance(String currency, long amount, boolean force) {
-        var ident = getIdent(currency);
-        var frozenFuture = AccountService.getInstance().getFrozenBalance(ident);
-        return frozenFuture.thenCompose(frozen -> AccountService.getInstance().setBalance(ident,frozen+amount));
+    public CompletableFuture<Void> setBalance(String currency, long amount) {
+        return AccountService.getInstance().set(currency,type,id,amount);
     }
 
     @Override
-    public CompletableFuture<Long> addBalance(String currency, long amount, boolean force) {
-        var ident = getIdent(currency);
-        var updateFuture = AccountService.getInstance().modifyBalance(ident,amount,force);
-        return updateFuture.thenCompose( v -> AccountService.getInstance().getBalance(ident));
+    public CompletableFuture<Void> addBalance(String currency, long amount) {
+        return AccountService.getInstance().modify(currency,type,id,amount);
     }
 
     @Override
-    public CompletableFuture<Long> removeBalance(String currency, long amount, boolean force) {
-        var ident = getIdent(currency);
-        var updateFuture = AccountService.getInstance().modifyBalance(ident,-amount,force);
-        return updateFuture.thenCompose( v -> AccountService.getInstance().getBalance(ident));
+    public CompletableFuture<Void> removeBalance(String currency, long amount) {
+        return AccountService.getInstance().modify(currency,type,id,amount);
     }
 
     @Override
-    public CompletableFuture<Long> frozenBalance(String currency, long amount) {
-        if (amount<0) throw new IllegalArgumentException("amount must be greater than zero");
-        var ident = getIdent(currency);
-        return AccountService.getInstance().freezeAmount(ident,amount);
+    public CompletableFuture<Void> frozenBalance(String currency, long amount) {
+        return AccountService.getInstance().freeze(currency,type,id,amount);
     }
 
     @Override
-    public CompletableFuture<Long> unfrozenBalance(String currency, long amount) {
-        if (amount<0) throw new IllegalArgumentException("amount must be greater than zero");
-        var ident = getIdent(currency);
-        return AccountService.getInstance().unfreezeAmount(ident,amount);
+    public CompletableFuture<Void> unfrozenBalance(String currency, long amount) {
+        return AccountService.getInstance().unfreeze(currency,type,id,amount);
     }
 
     @Override
-    public CompletableFuture<Boolean> transfer(String currency, long amount, Account destination, boolean force) {
-        var from = getIdent(currency);
-        var to = getIdent(destination,currency);
-        return AccountService.getInstance().transfer(from,to,amount,amount,force);
+    public CompletableFuture<Void> transfer(String currency, long amount, Account destination) {
+        return AccountService.getInstance().transfer(
+                currency, type, id, amount,
+                currency, destination.getType(), destination.getId(), amount
+        );
     }
 
     @Override
-    public CompletableFuture<Boolean> exchange(String fromCurrency, long decreases, String toCurrency, long increases, boolean force) {
-        var from = getIdent(fromCurrency);
-        var to = getIdent(toCurrency);
-        return AccountService.getInstance().transfer(from,to,decreases,increases,force);
+    public CompletableFuture<Void> exchange(String fromCurrency, long decreases, String toCurrency, long increases) {
+        return AccountService.getInstance().transfer(
+                fromCurrency, type, id, decreases,
+                toCurrency, type, id, increases
+        );
     }
 
     @Override
-    public CompletableFuture<Boolean> transfer(String fromCurrency, long decreases, Account destination, String toCurrency, long increases, boolean force) {
-        var from = getIdent(fromCurrency);
-        var to = getIdent(destination,toCurrency);
-        return AccountService.getInstance().transfer(from,to,decreases,increases,force);
+    public CompletableFuture<Void> transfer(String fromCurrency, long decreases, Account destination, String toCurrency, long increases) {
+        return AccountService.getInstance().transfer(
+                fromCurrency, type, id, decreases,
+                toCurrency, destination.getType(), destination.getId(), increases
+        );
     }
-
-    // private util
-    private AccountIdent getIdent(String currency){
-        if (this.type == Type.SYSTEM) return new AccountIdent(currency, Account.Type.SYSTEM, id);
-        else return new AccountIdent(currency, Account.Type.USER, id);
-    }
-
-    private static AccountIdent getIdent(Account account,String currency) {
-        if (account.getType() == Type.SYSTEM) return new AccountIdent(currency, Account.Type.SYSTEM, account.getId());
-        else return new AccountIdent(currency, Account.Type.USER, account.getId());
-    }
-
 }

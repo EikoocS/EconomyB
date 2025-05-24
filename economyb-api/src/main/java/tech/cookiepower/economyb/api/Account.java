@@ -39,49 +39,40 @@ public interface Account {
      *
      * @param currency The currency to set the balance of
      * @param amount The amount to set the balance to
-     * @param force If true, the balance will be set even if it is negative
-     * @return The new balance of the account in the specified currency
      * */
-    CompletableFuture<Long> setBalance(String currency, long amount, boolean force);
+    CompletableFuture<Void> setBalance(String currency, long amount);
 
     /**
      * Add the specified amount to the balance of the account
      *
      * @param currency The currency to add the amount to
      * @param amount The amount to add to the balance, if negative, it will be removed
-     * @param force If true, the amount will be added even if it is negative
-     * @return The new balance of the account in the specified currency
      * */
-    CompletableFuture<Long> addBalance(String currency, long amount, boolean force);
+    CompletableFuture<Void> addBalance(String currency, long amount);
 
     /**
      * Remove the specified amount from the balance of the account
      *
      * @param currency The currency to remove the amount from
      * @param amount The amount to remove from the balance, if negative, it will be added
-     * @param force If true, the amount will be removed even if it is negative
-     * @return The new balance of the account in the specified currency
-     *         If the amount is negative and force is false, it will fail
      * */
-    CompletableFuture<Long> removeBalance(String currency, long amount, boolean force);
+    CompletableFuture<Void> removeBalance(String currency, long amount);
 
     /**
      * Frozen the specified balance of the account
      *
      * @param currency The currency to freeze the amount from
      * @param amount The amount to frozen from the balance
-     * @return if the amount is negative or unfrozen balance is less than the amount, it will fail
      * */
-    CompletableFuture<Long> frozenBalance(String currency, long amount);
+    CompletableFuture<Void> frozenBalance(String currency, long amount);
 
     /**
      * Unfrozen the specified balance of the account
      *
      * @param currency The currency to unfreeze the amount from
      * @param amount The amount to unfrozen from the balance
-     * @return if the amount is negative or frozen balances is less than the amount, it will fail
      * */
-    CompletableFuture<Long> unfrozenBalance(String currency, long amount);
+    CompletableFuture<Void> unfrozenBalance(String currency, long amount);
 
     /**
      * Transfer the specified amount from this account to the destination account
@@ -89,10 +80,8 @@ public interface Account {
      * @param currency The currency to unfreeze the amount from
      * @param amount The amount to unfrozen from the balance
      * @param destination The destination account to add the amount to
-     * @param force If true, the amount will be transferred even if it is negative
-     * @return Success execute action or not
      * */
-    CompletableFuture<Boolean> transfer(String currency, long amount, Account destination, boolean force);
+    CompletableFuture<Void> transfer(String currency, long amount, Account destination);
 
     /**
      * Transfer the specified amount from a currency to the destination currency
@@ -101,10 +90,8 @@ public interface Account {
      * @param decreases The amount to remove from the balance
      * @param toCurrency The currency to add the amount to
      * @param increases The amount to add to the balance
-     * @param force If true, the amount will be transferred even if it is negative
-     * @return Success execute action or not
      * */
-    CompletableFuture<Boolean> exchange(String fromCurrency, long decreases,String toCurrency, long increases, boolean force);
+    CompletableFuture<Void> exchange(String fromCurrency, long decreases,String toCurrency, long increases);
 
     /**
      * Full-featured transfers
@@ -115,10 +102,8 @@ public interface Account {
      * @param destination The destination account to add the amount to
      * @param toCurrency The currency to add the amount to
      * @param increases The amount to add to the balance
-     * @param force If true, the amount will be transferred even if it is negative
-     * @return Success execute action or not
      * */
-    CompletableFuture<Boolean> transfer(String fromCurrency, long decreases, Account destination, String toCurrency, long increases, boolean force);
+    CompletableFuture<Void> transfer(String fromCurrency, long decreases, Account destination, String toCurrency, long increases);
 
     enum Type {
         USER,
