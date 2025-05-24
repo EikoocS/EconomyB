@@ -1,7 +1,5 @@
 plugins {
     java
-    id("xyz.jpenilla.run-paper") version "2.3.1"
-    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 group = "tech.cookiepower"
@@ -17,21 +15,19 @@ repositories {
         name = "sonatype"
         url = uri("https://oss.sonatype.org/content/groups/public/")
     }
+    maven {
+        name = "jitpack"
+        url = uri("https://jitpack.io")
+    }
 }
 
 dependencies {
-    implementation(project(":economyb-core"))
     compileOnly(project(":economyb-api"))
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
 
     compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
 }
 
-tasks.named<xyz.jpenilla.runpaper.task.RunServer>("runServer") {
-    // Configure the Minecraft version for our task.
-    // This is the only required configuration besides applying the plugin.
-    // Your plugin's jar (or shadowJar if present) will be used automatically.
-    minecraftVersion("1.21")
-}
 
 val targetJavaVersion = 21
 java {
@@ -51,24 +47,11 @@ tasks.withType<JavaCompile>().configureEach {
     }
 }
 
-var projectVersionToPrint = project.version
 tasks.withType<ProcessResources>().configureEach {
     filteringCharset = "UTF-8"
     doLast {
         filesMatching("plugin.yml") {
-            expand("version" to projectVersionToPrint)
+            expand("version" to project.version)
         }
     }
-}
-
-tasks.shadowJar {
-    mergeServiceFiles()
-    exclude("META-INF/io.netty.versions.properties")
-    relocate("io.netty", "tech.cookiepower.shadow.netty")
-    relocate("io.vertx", "tech.cookiepower.shadow.vertx")
-    archiveClassifier = ""
-}
-
-tasks.build {
-    dependsOn(tasks.shadowJar)
 }
