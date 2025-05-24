@@ -47,4 +47,9 @@ public interface EconomybAPI {
      * @return The account with the specified identifier
      * */
     Account getSystemAccount(String identifier);
+
+    /**
+     * Get Accounts utility
+     * */
+    Accounts getAccounts();
 }
