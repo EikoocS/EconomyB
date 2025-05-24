@@ -1,6 +1,7 @@
 package tech.cookiepower.economyb;
 
 import tech.cookiepower.economyb.api.Account;
+import tech.cookiepower.economyb.api.Accounts;
 import tech.cookiepower.economyb.api.EconomybAPI;
 
 import java.util.UUID;
@@ -39,5 +40,10 @@ public class EconomybApiImpl implements EconomybAPI {
     @Override
     public Account getSystemAccount(String identifier) {
         return new AccountImpl(identifier, Account.Type.SYSTEM);
+    }
+
+    @Override
+    public Accounts getAccounts() {
+        return AccountsImpl.INSTANCE;
     }
 }
