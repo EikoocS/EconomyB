@@ -16,7 +16,7 @@ public final class EconomybApi2VaultPlugin extends JavaPlugin {
         var servicesManager = getServer().getServicesManager();
         var economybAPI = servicesManager.getRegistration(EconomybAPI.class);
         if (economybAPI != null) {
-            var vaultEconomy = new VaultEconomy(economybAPI.getProvider(),"test");
+            var vaultEconomy = new VaultEconomy(economybAPI.getProvider().getAccounts(),"test");
             logger.info("EconomyB API is register by " + economybAPI.getProvider());
             servicesManager.register(Economy.class, vaultEconomy, this, ServicePriority.Normal);
         } else {

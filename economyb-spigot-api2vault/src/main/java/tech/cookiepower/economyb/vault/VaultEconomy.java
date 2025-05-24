@@ -3,20 +3,21 @@ package tech.cookiepower.economyb.vault;
 import net.milkbowl.vault.economy.AbstractEconomy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
-import tech.cookiepower.economyb.api.EconomybAPI;
+import tech.cookiepower.economyb.api.Account;
+import tech.cookiepower.economyb.api.Accounts;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @SuppressWarnings("deprecation")
 public class VaultEconomy extends AbstractEconomy {
-    private final EconomybAPI economyAPI;
+    private final Accounts accounts;
     private final String currency;
     private final static EconomyResponse BANKING_IS_NOT_SUPPORTED =
             new EconomyResponse(0, 0, EconomyResponse.ResponseType.NOT_IMPLEMENTED, "Banking is not supported");
 
-    public VaultEconomy(EconomybAPI economyAPI,String currency) {
-        this.economyAPI = economyAPI;
+    public VaultEconomy(Accounts accounts,String currency) {
+        this.accounts = accounts;
         this.currency = currency;
     }
 
@@ -70,7 +71,7 @@ public class VaultEconomy extends AbstractEconomy {
         var player = Bukkit.getOfflinePlayer(playerName);
         var uuid = player.getUniqueId();
         try {
-            return economyAPI.getPlayerAccount(uuid).getBalance(currency).get();
+            return accounts.getBalance(currency, Account.Type.USER, uuid.toString()).get();
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -86,7 +87,7 @@ public class VaultEconomy extends AbstractEconomy {
         var player = Bukkit.getOfflinePlayer(playerName);
         var uuid = player.getUniqueId();
         try {
-            return economyAPI.getPlayerAccount(uuid).hasBalance(currency, (long) amount).get();
+            return accounts.hasBalance(currency, Account.Type.USER, uuid.toString(), (long) amount).get();
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -102,9 +103,8 @@ public class VaultEconomy extends AbstractEconomy {
         var player = Bukkit.getOfflinePlayer(playerName);
         var uuid = player.getUniqueId();
         try {
-            var account = economyAPI.getPlayerAccount(uuid);
-            account.removeBalance(currency, (long) amount).get();
-            var balance = account.getBalance(currency).get();
+            accounts.removeBalance(currency, Account.Type.USER, uuid.toString(), (long) amount).join();
+            var balance = accounts.getBalance(currency, Account.Type.USER, uuid.toString()).get();
             return new EconomyResponse(amount, balance, EconomyResponse.ResponseType.SUCCESS, "");
         } catch (InterruptedException | ExecutionException e) {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, e.getMessage());
@@ -121,9 +121,8 @@ public class VaultEconomy extends AbstractEconomy {
         var player = Bukkit.getOfflinePlayer(playerName);
         var uuid = player.getUniqueId();
         try {
-            var account = economyAPI.getPlayerAccount(uuid);
-            account.addBalance(currency, (long) amount).get();
-            var balance = account.getBalance(currency).get();
+            accounts.addBalance(currency, Account.Type.USER, uuid.toString(), (long) amount).join();
+            var balance = accounts.getBalance(currency, Account.Type.USER, uuid.toString()).get();
             return new EconomyResponse(amount, balance, EconomyResponse.ResponseType.SUCCESS, "");
         } catch (InterruptedException | ExecutionException e) {
             return new EconomyResponse(0, 0, EconomyResponse.ResponseType.FAILURE, e.getMessage());
@@ -139,12 +138,8 @@ public class VaultEconomy extends AbstractEconomy {
     public boolean createPlayerAccount(String playerName) {
         var player = Bukkit.getOfflinePlayer(playerName);
         var uuid = player.getUniqueId();
-        try {
-            economyAPI.getPlayerAccount(uuid).addBalance(currency,0).get();
-            return true;
-        } catch (InterruptedException | ExecutionException e) {
-            return false;
-        }
+        accounts.addBalance(currency, Account.Type.USER, uuid.toString(),0).join();
+        return true;
     }
 
     @Override
