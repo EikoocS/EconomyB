@@ -54,10 +54,8 @@ tasks.withType<JavaCompile>().configureEach {
 var projectVersionToPrint = project.version
 tasks.withType<ProcessResources>().configureEach {
     filteringCharset = "UTF-8"
-    doLast {
-        filesMatching("plugin.yml") {
-            expand("version" to projectVersionToPrint)
-        }
+    filesMatching("plugin.yml") {
+        expand("version" to projectVersionToPrint)
     }
 }
 

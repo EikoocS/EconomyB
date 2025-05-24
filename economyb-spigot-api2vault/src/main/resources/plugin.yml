@@ -1,5 +1,5 @@
 name: economyb-api2vault
-version: '0.1.0-SNAPSHOT'
+version: '${version}'
 main: tech.cookiepower.economyb.vault.EconomybApi2VaultPlugin
 api-version: '1.21'
 depend: [economyb-api, Vault]
