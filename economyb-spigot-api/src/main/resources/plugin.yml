@@ -2,3 +2,11 @@ name: economyb-api
 version: '0.1.0-SNAPSHOT'
 main: tech.cookiepower.economyb.api.EconomybApiPlugin
 api-version: '1.21'
+commands:
+  economy:
+    description: The main command for EconomybAPI
+    usage: /<command>
+    aliases: [eco, economyb]
+    permission: economyb.command.economy
+    permission-message: You do not have permission to use this command.
+    default: op

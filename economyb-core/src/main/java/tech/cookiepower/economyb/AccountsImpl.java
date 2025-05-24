@@ -31,7 +31,7 @@ public class AccountsImpl implements Accounts {
 
     @Override
     public CompletableFuture<Void> removeBalance(String currency, Account.Type type, String id, long amount) {
-        return AccountService.getInstance().modify(currency,type,id,amount);
+        return AccountService.getInstance().modify(currency,type,id,-amount);
     }
 
     @Override

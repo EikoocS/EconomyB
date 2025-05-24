@@ -105,14 +105,14 @@ public interface Account {
      * */
     CompletableFuture<Void> transfer(String fromCurrency, long decreases, Account destination, String toCurrency, long increases);
 
-    enum Type {
-        USER,
-        SYSTEM;
-        public boolean isSystem() {
-            return this == SYSTEM;
+        enum Type {
+            USER,
+            SYSTEM;
+            public boolean isSystem() {
+                return this == SYSTEM;
+            }
+            public boolean isUser() {
+                return this == USER;
+            }
         }
-        public boolean isUser() {
-            return this == USER;
-        }
-    }
 }
