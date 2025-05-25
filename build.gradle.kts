@@ -27,7 +27,7 @@ tasks.register<Copy>("collectJar") {
         project(":economyb-spigot-api2vault"),
     )
 
-    dependsOn(pluginsProject.map { it.tasks.named("jar") })
+    dependsOn(pluginsProject.map { it.tasks.named("shadowJar") })
 
     val libsDir  = layout.buildDirectory.dir("libs").get().asFile
     val tmpDir = layout.buildDirectory.dir("tmp").get().asFile

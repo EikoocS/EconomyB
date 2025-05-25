@@ -1,5 +1,6 @@
 plugins {
     java
+    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 group = "tech.cookiepower"
@@ -53,4 +54,12 @@ tasks.withType<ProcessResources>().configureEach {
     filesMatching("plugin.yml") {
         expand("version" to projectVersionToPrint)
     }
+}
+
+tasks.shadowJar {
+    archiveClassifier = ""
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
 }

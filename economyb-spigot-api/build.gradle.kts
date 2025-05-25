@@ -54,7 +54,6 @@ tasks.withType<ProcessResources>().configureEach {
     }
 }
 
-
 tasks.shadowJar {
     archiveClassifier = ""
 }
