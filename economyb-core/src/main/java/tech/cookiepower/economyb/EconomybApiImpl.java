@@ -8,8 +8,8 @@ import java.util.UUID;
 
 public class EconomybApiImpl implements EconomybAPI {
 
-    public EconomybApiImpl() {
-        AccountService.init();
+    public EconomybApiImpl(EconomybConfig config) {
+        AccountService.init(config.host, config.port, config.user, config.password, config.database);
     }
 
     @Override

@@ -12,9 +12,9 @@ public class AccountService {
     public static AccountService INSTANCE = null;
     private final Pool sqlPool;
 
-    public static void init() {
+    public static void init(String host, int port, String user, String password, String database) {
         if (INSTANCE != null) throw new IllegalStateException("already initialized");
-        INSTANCE = new AccountService();
+        INSTANCE = new AccountService(host, port, user, password, database);
     }
 
     public static AccountService getInstance() {
@@ -22,12 +22,13 @@ public class AccountService {
         return INSTANCE;
     }
 
-    private AccountService() {
+    private AccountService(String host, int port, String user, String password, String database) {
         var connectOptions = new MySQLConnectOptions()
-                .setHost("127.0.0.1")
-                .setPort(3306)
-                .setUser("root")
-                .setDatabase("economyb");
+                .setHost(host)
+                .setPort(port)
+                .setUser(user)
+                .setPassword(password)
+                .setDatabase(database);
 
         var poolOptions = new PoolOptions().setMaxSize(5);
 
