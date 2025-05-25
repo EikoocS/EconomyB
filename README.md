@@ -58,6 +58,7 @@ To install, simply place the JAR files into your server’s `plugins/` directory
 
 * [ ] Implement a messaging system with full formatting and i18n (internationalization) support
 * [ ] Add extensive logging functionality
+* [ ] Format currencies with configurable patterns
 
 ### 🟢 Low Priority
 
